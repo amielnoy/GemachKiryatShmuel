@@ -36,40 +36,59 @@ npm run dev
 
 ## שלב 2 — פריסה ל-Vercel
 
-### דרך א׳: GitHub (מומלץ — כל `git push` מעדכן את האתר)
+הפריסה רצה **רק מתוך GitHub Actions**, ורק אחרי שבדיקת הטיפוסים, הבדיקות והבנייה עברו.
+דחיפה ל-git לא מפעילה בנייה בוורסל בעצמה (`"git": { "deploymentEnabled": false }` ב-`vercel.json`) —
+כך אין בנייה כפולה, וקומיט שהבדיקות שלו נכשלו לא מגיע לאוויר.
 
-```bash
-git init
-git add .
-git commit -m "גמח מזון"
-git branch -M main
-git remote add origin https://github.com/<המשתמש-שלך>/gemach-app.git
-git push -u origin main
-```
-
-ואז ב-[vercel.com/new](https://vercel.com/new): **Import** את המאגר. Vercel מזהה Vite לבד ולא צריך לשנות הגדרות בנייה.
-
-לפני `Deploy`, פתחו **Environment Variables** והוסיפו:
-
-| Name | Value |
+| מה קורה | התוצאה |
 |---|---|
-| `VITE_SUPABASE_URL` | ה-Project URL משלב 1 |
-| `VITE_SUPABASE_ANON_KEY` | מפתח ה-anon משלב 1 |
-| `VITE_COORDINATOR_CODE` | קוד שתבחרו, למשל `1234` (אפשר להשאיר ריק) |
+| Pull Request | פריסת תצוגה מקדימה + תגובה ב-PR עם הקישור |
+| דחיפה ל-`main` | פריסה לייצור |
+| הבדיקות נכשלו | אין פריסה בכלל |
 
-### דרך ב׳: שורת הפקודה
+### הגדרה חד־פעמית
+
+**1. חיבור הפרויקט לוורסל** — יוצר `.vercel/project.json` מקומי (לא נכנס ל-git):
 
 ```bash
 npm i -g vercel
 vercel login
 vercel link
+```
+
+**2. משתני סביבה — בוורסל, לא ב-GitHub.** הבנייה ב-CI שולפת אותם עם `vercel pull`,
+ולכן הם חייבים לשבת בפרויקט בוורסל:
+
+```bash
 vercel env add VITE_SUPABASE_URL production
 vercel env add VITE_SUPABASE_ANON_KEY production
 vercel env add VITE_COORDINATOR_CODE production
-vercel --prod
 ```
 
-> משתני סביבה נקראים **בזמן הבנייה**. אחרי שינוי שלהם צריך לבנות מחדש (`Redeploy` בממשק, או `vercel --prod`).
+כדאי להוסיף אותם גם ל-`preview`, אחרת התצוגה המקדימה תעבוד בלי בסיס נתונים משותף:
+
+```bash
+vercel env add VITE_SUPABASE_URL preview
+vercel env add VITE_SUPABASE_ANON_KEY preview
+```
+
+**3. סודות ב-GitHub** — `Settings → Secrets and variables → Actions`:
+
+| Secret | מאיפה לקחת |
+|---|---|
+| `VERCEL_TOKEN` | [vercel.com/account/tokens](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | `.vercel/project.json` → `orgId` |
+| `VERCEL_PROJECT_ID` | `.vercel/project.json` → `projectId` |
+
+### פריסה ידנית, כשצריך לעקוף את ה-CI
+
+```bash
+vercel --prod          # בנייה ופריסה לייצור
+vercel rollback        # חזרה לפריסה הקודמת
+```
+
+> משתני הסביבה נקראים **בזמן הבנייה** ונצרבים לתוך קובצי ה-JS.
+> אחרי שינוי ערך בוורסל צריך **פריסה מחדש** — עריכת הערך לבדה לא משנה את האתר החי.
 
 ---
 
@@ -123,7 +142,7 @@ src/
     MoreMenu.tsx           ייבוא, מדבקות, ייצוא, דוח מקור, נתוני הדגמה
 supabase/schema.sql        טבלאות, RLS, realtime, מיגרציה מ-v1
 supabase/seed.sql          נתוני פתיחה — אותם מזהים כמו src/lib/seed.ts
-.github/workflows/ci.yml   בדיקת טיפוסים, בדיקות ובנייה בכל push ו-PR
+.github/workflows/ci.yml   בדיקות ובנייה, ואחריהן פריסה לוורסל (תצוגה מקדימה / ייצור)
 ```
 
 החלפת בסיס נתונים לא נוגעת במסכים: מספיק לממש את הממשק `Store` מ-`src/types.ts` ולהחזיר אותו מ-`createStore()`.
@@ -198,7 +217,8 @@ npm test
 והוודאות ששינוי שיבוץ לא נוגע בהיסטוריה.
 
 `.github/workflows/ci.yml` מריץ בדיקת טיפוסים, בדיקות ובנייה על Node 22 ו-24 בכל
-`push` ל-`main` ובכל Pull Request.
+`push` ל-`main` ובכל Pull Request. הפריסה לוורסל תלויה בשלב הזה (`needs: verify`),
+ולכן בדיקה אדומה עוצרת את הפריסה — ראו [שלב 2](#שלב-2--פריסה-ל-vercel).
 
 > `npm run typecheck` הוא `tsc -b --force`, ולא `tsc --noEmit`. עם project references
 > הפקודה השנייה לא בודקת שום קובץ ופשוט מצליחה תמיד.
