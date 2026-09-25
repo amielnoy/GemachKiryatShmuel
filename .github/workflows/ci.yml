@@ -163,7 +163,30 @@ jobs:
         id: deploy
         run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
 
-      # TODO(amiel): בדיקת עשן אחרי הפריסה — ראה הסבר בשיחה.
-      # מה לעשות אם האתר החדש לא עולה? נכשל בקול רם, או חוזר אחורה אוטומטית?
+      # ה-rewrite ב-vercel.json מחזיר 200 עם index.html לכל נתיב, ולכן בדיקה של
+      # "/" לבדה לא מוכיחה דבר — גם בנייה שבורה תחזיר 200. מושכים את קובץ ה-JS
+      # המגובב מתוך ה-HTML ומוודאים שגם הוא באמת נטען.
+      # אם תופעל הגנת Deployment Protection על הפרויקט, יידרש כאן
+      # VERCEL_AUTOMATION_BYPASS_SECRET, אחרת ה-curl יקבל דף התחברות.
       - name: בדיקת עשן
-        run: echo "טרם מוגדר — ראה TODO"
+        id: smoke
+        run: |
+          set -euo pipefail
+          URL="${{ steps.deploy.outputs.url }}"
+          HTML=$(curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors "$URL")
+          ASSET=$(printf '%s' "$HTML" | grep -oE '/assets/index-[^"]+\.js' | head -1)
+          if [ -z "$ASSET" ]; then
+            echo "::error title=בדיקת העשן נכשלה::לא נמצאה הפניה לקובץ JS ב-HTML שחזר מ-$URL"
+            exit 1
+          fi
+          curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /dev/null "$URL$ASSET"
+          echo "האתר עלה כשורה: $URL$ASSET"
+
+      # רץ אך ורק כשבדיקת העשן עצמה נפלה, כלומר הגרסה החדשה באוויר אבל לא עובדת.
+      # אם הבדיקות, הבנייה או הפריסה נכשלו — שום דבר חדש לא עלה לאוויר, הגרסה
+      # הקודמת ממשיכה לשרת כרגיל, ואין לאן לחזור.
+      - name: חזרה לפריסה הקודמת
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: |
+          echo "::error title=חזרה אחורה::בדיקת העשן נכשלה — מחזירים את הפריסה הקודמת"
+          vercel rollback --yes --token=${{ secrets.VERCEL_TOKEN }}
