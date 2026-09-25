@@ -102,7 +102,11 @@ jobs:
 
       - name: פריסה
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          [ -n "$URL" ] || { echo "::error::הפריסה לא החזירה כתובת"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: קישור לתצוגה המקדימה בתוך ה-PR
         uses: actions/github-script@v7
@@ -161,7 +165,11 @@ jobs:
 
       - name: פריסה
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          [ -n "$URL" ] || { echo "::error::הפריסה לא החזירה כתובת"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       # ה-rewrite ב-vercel.json מחזיר 200 עם index.html לכל נתיב, ולכן בדיקה של
       # "/" לבדה לא מוכיחה דבר — גם בנייה שבורה תחזיר 200. מושכים את קובץ ה-JS

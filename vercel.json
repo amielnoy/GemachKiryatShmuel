@@ -4,7 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
 
-  "//": "הפריסה נעשית רק מתוך GitHub Actions, אחרי שהבדיקות עברו. לכן דחיפה ל-git לא מפעילה בנייה בוורסל.",
   "git": { "deploymentEnabled": false },
 
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
