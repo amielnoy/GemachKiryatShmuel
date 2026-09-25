@@ -102,7 +102,11 @@ jobs:
 
       - name: פריסה
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          [ -n "$URL" ] || { echo "::error::הפריסה לא החזירה כתובת"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: קישור לתצוגה המקדימה בתוך ה-PR
         uses: actions/github-script@v7
@@ -161,7 +165,14 @@ jobs:
 
       - name: פריסה
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          echo "::notice title=פריסה לייצור::[1/3] מעלים את התוצר לוורסל"
+          # הפלט של vercel זורם ל-stderr ולכן נראה חי בלוג; ה-stdout הוא הכתובת בלבד
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          [ -n "$URL" ] || { echo "::error::הפריסה לא החזירה כתובת"; exit 1; }
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "::notice title=פריסה לייצור::[2/3] הועלה אל $URL"
 
       # ה-rewrite ב-vercel.json מחזיר 200 עם index.html לכל נתיב, ולכן בדיקה של
       # "/" לבדה לא מוכיחה דבר — גם בנייה שבורה תחזיר 200. מושכים את קובץ ה-JS
@@ -181,6 +192,31 @@ jobs:
           fi
           curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors -o /dev/null "$URL$ASSET"
           echo "האתר עלה כשורה: $URL$ASSET"
+
+      - name: סיכום וקישור לאתר
+        if: success()
+        run: |
+          set -euo pipefail
+          echo "::notice title=פריסה לייצור::[3/3] הסתיים בהצלחה"
+          URL="${{ steps.deploy.outputs.url }}"
+          # הכתובת הקבועה של הייצור, אם וורסל הצמיד אליה את הפריסה
+          ALIAS=$(vercel inspect "$URL" --token=${{ secrets.VERCEL_TOKEN }} 2>&1 \
+                  | grep -oE 'https://[a-z0-9.-]+\.vercel\.app' | grep -v "$URL" | head -1 || true)
+          {
+            echo "## ✅ האתר עודכן"
+            echo ""
+            if [ -n "$ALIAS" ]; then
+              echo "### 🌐 [$ALIAS]($ALIAS)"
+              echo ""
+              echo "זו הכתובת הקבועה — זו שהמובילים שמורים אצלם."
+              echo ""
+            fi
+            echo "| | |"
+            echo "|---|---|"
+            echo "| כתובת הפריסה הזו | [$URL]($URL) |"
+            echo "| קומיט | \`${GITHUB_SHA:0:7}\` |"
+            echo "| בדיקת עשן | עברה |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # רץ אך ורק כשבדיקת העשן עצמה נפלה, כלומר הגרסה החדשה באוויר אבל לא עובדת.
       # אם הבדיקות, הבנייה או הפריסה נכשלו — שום דבר חדש לא עלה לאוויר, הגרסה
