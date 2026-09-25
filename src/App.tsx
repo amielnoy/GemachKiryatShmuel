@@ -9,10 +9,11 @@ import {
   tryUnlock,
 } from './lib/createStore';
 import { useGemach } from './lib/useGemach';
-import { weekLabel } from './lib/utils';
+import { dayLabel } from './lib/utils';
 import { Shell, type Tab } from './components/Shell';
 import { Field, Icon, Sheet } from './components/ui';
 import { Deliver } from './screens/Deliver';
+import { DeliveryDay } from './screens/DeliveryDay';
 import { Families } from './screens/Families';
 import { Drivers } from './screens/Drivers';
 import { MyRoute, PickMe } from './screens/MyRoute';
@@ -20,6 +21,7 @@ import { MoreMenu } from './screens/MoreMenu';
 
 const TABS: Tab[] = [
   { key: 'deliver', label: 'חלוקה', icon: 'truck' },
+  { key: 'day', label: 'יום חלוקה', icon: 'cal' },
   { key: 'families', label: 'משפחות', icon: 'users' },
   { key: 'drivers', label: 'מובילים', icon: 'grid' },
 ];
@@ -47,8 +49,8 @@ export default function App() {
 
   const localWarning = g.store.kind === 'local';
   const subtitle = useMemo(
-    () => `שבוע ${weekLabel(g.weekId)} · ${g.deliveredCount}/${g.activeFamilies.length} נמסרו`,
-    [g.weekId, g.deliveredCount, g.activeFamilies.length],
+    () => `${dayLabel(g.todayId)} · ${g.deliveredCount}/${g.activeFamilies.length} נמסרו`,
+    [g.todayId, g.deliveredCount, g.activeFamilies.length],
   );
 
   if (g.loading) {
@@ -62,7 +64,7 @@ export default function App() {
       <>
         <Shell
           title={me ? me.name : 'גמ"ח מזון'}
-          subtitle={me ? `שבוע ${weekLabel(g.weekId)}` : 'בחרו את שמכם'}
+          subtitle={me ? dayLabel(g.todayId) : 'בחרו את שמכם'}
           showLocalWarning={localWarning}
           toast={toast}
           headerRight={
@@ -106,6 +108,7 @@ export default function App() {
       }
     >
       {tab === 'deliver' ? <Deliver g={g} onToast={showToast} /> : null}
+      {tab === 'day' ? <DeliveryDay g={g} onToast={showToast} /> : null}
       {tab === 'families' ? <Families g={g} onToast={showToast} /> : null}
       {tab === 'drivers' ? <Drivers g={g} onToast={showToast} /> : null}
     </Shell>

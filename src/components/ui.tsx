@@ -5,7 +5,7 @@ import { navigationHref, telHref, whatsappHref } from '../lib/utils';
 export type IconName =
   | 'truck' | 'users' | 'grid' | 'plus' | 'check' | 'x' | 'phone' | 'pin'
   | 'edit' | 'trash' | 'chev' | 'more' | 'bolt' | 'print' | 'up' | 'down'
-  | 'search' | 'list' | 'lock';
+  | 'search' | 'list' | 'lock' | 'cal';
 
 const PATHS: Record<IconName, ReactNode> = {
   truck: <><path d="M3 7h10v9H3z" /><path d="M13 10h4l3 3v3h-7z" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></>,
@@ -27,6 +27,7 @@ const PATHS: Record<IconName, ReactNode> = {
   search: <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
   list: <><path d="M8 6h13M8 12h13M8 18h13" /><circle cx="3.6" cy="6" r="1" /><circle cx="3.6" cy="12" r="1" /><circle cx="3.6" cy="18" r="1" /></>,
   lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
+  cal: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18" /><path d="M8 3v4" /><path d="M16 3v4" /><circle cx="12" cy="15" r="1.6" /></>,
 };
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
