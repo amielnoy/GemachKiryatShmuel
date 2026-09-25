@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Gemach } from '../lib/useGemach';
-import { clean, downloadCSV, parsePastedRows, toCSV, weekLabel } from '../lib/utils';
+import { clean, dayLabel, dayShort, downloadCSV, parsePastedRows, toCSV } from '../lib/utils';
 import { EmptyState, Icon, Sheet } from '../components/ui';
 
 type View = 'menu' | 'import' | 'source' | 'labels' | null;
@@ -16,13 +16,32 @@ export function MoreMenu({
 
   const exportFamilies = () => {
     const rows: unknown[][] = [
-      ['מס׳', 'שם', 'כתובת', 'טלפון', 'טלפון II', 'מקור', 'ת.הצטרפות', 'ת. הסרה', 'מוביל'],
+      ['מס׳', 'שם', 'כתובת', 'טלפון', 'טלפון II', 'מקור', 'ת.הצטרפות', 'ת. הסרה', 'נפשות', 'מוביל'],
     ];
     g.families.forEach((f) => {
       const d = g.activeDrivers.find((x) => x.id === f.driverId);
-      rows.push([f.num, f.name, f.address, f.phone, f.phone2, f.source, f.joinDate, f.endDate, d?.name ?? '']);
+      rows.push([f.num, f.name, f.address, f.phone, f.phone2, f.source, f.joinDate, f.endDate,
+        f.householdSize || '', d?.name ?? '']);
     });
     downloadCSV('משפחות.csv', toCSV(rows));
+    setView(null);
+  };
+
+  /* כל המסירות שנרשמו אי פעם — שורה לכל משפחה בכל יום חלוקה. */
+  const exportHistory = () => {
+    const rows: unknown[][] = [['תאריך', 'מוביל', 'משפחה', 'סטטוס', 'שעת סימון']];
+    [...g.snap.deliveries]
+      .sort((a, b) => b.dayId.localeCompare(a.dayId) || a.familyName.localeCompare(b.familyName, 'he'))
+      .forEach((d) => {
+        rows.push([
+          dayShort(d.dayId),
+          d.driverName || 'ללא מוביל',
+          d.familyName,
+          d.status === 'delivered' ? 'נמסר' : d.status === 'absent' ? 'לא היו בבית' : 'לא סומן',
+          d.markedAt ? new Date(d.markedAt).toLocaleString('he-IL') : '',
+        ]);
+      });
+    downloadCSV('היסטוריית-חלוקות.csv', toCSV(rows));
     setView(null);
   };
 
@@ -44,8 +63,19 @@ export function MoreMenu({
             <button className="btn block" onClick={exportFamilies}>
               <Icon name="down" size={17} />ייצוא רשימת משפחות
             </button>
+            <button className="btn block" onClick={exportHistory}
+              disabled={!g.snap.deliveries.length}>
+              <Icon name="cal" size={17} />ייצוא היסטוריית חלוקות
+            </button>
             <button className="btn block" onClick={() => setView('source')}>
               <Icon name="list" size={17} />דוח לפי מקור
+            </button>
+            <button className="btn block" onClick={async () => {
+              await g.loadDemoData();
+              setView(null);
+              onToast('נטענו נתוני הדגמה');
+            }}>
+              <Icon name="bolt" size={17} />טעינת נתוני הדגמה
             </button>
             {onLock ? (
               <button className="btn block" onClick={() => { onLock(); setView(null); }}>
@@ -155,7 +185,7 @@ function Labels({ g, onClose }: { g: Gemach; onClose: () => void }) {
             <Icon name="print" size={16} />הדפסה
           </button>
         </div>
-        <h2>מדבקות · שבוע {weekLabel(g.weekId)}</h2>
+        <h2>מדבקות · {dayLabel(g.todayId)}</h2>
         <div style={{ height: 14 }} />
         {g.activeDrivers.map((d) => {
           const families = g.byDriver[d.id] ?? [];
@@ -169,7 +199,7 @@ function Labels({ g, onClose }: { g: Gemach; onClose: () => void }) {
                     <b>{f.name}</b>
                     <div>{f.address}</div>
                     <div style={{ color: 'var(--muted)' }}>{f.phone}</div>
-                    <div style={{ marginTop: 5, fontSize: 11.5 }}>{d.name} · {weekLabel(g.weekId)}</div>
+                    <div style={{ marginTop: 5, fontSize: 11.5 }}>{d.name} · {dayLabel(g.todayId)}</div>
                   </div>
                 ))}
               </div>

@@ -255,6 +255,12 @@ h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.3px;
 textarea.input { resize: vertical; min-height: 64px; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 
+/* ארבע מדידות בשורה אחת במסך יום החלוקה; שתיים בטלפון צר */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 8px; }
+@media (max-width: 380px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ---------- sheet ---------- */
 .sheet {
   position: fixed;

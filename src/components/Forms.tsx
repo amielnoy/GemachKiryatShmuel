@@ -62,10 +62,20 @@ export function FamilyForm({
             <Field label="מס׳">
               <input className="input" value={value.num} onChange={set('num')} inputMode="numeric" />
             </Field>
-            <Field label="טלפון II">
-              <input className="input" value={value.phone2} onChange={set('phone2')} inputMode="tel" />
+            <Field label="נפשות בבית">
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={value.householdSize || ''}
+                onChange={(e) =>
+                  setValue((v) => ({ ...v, householdSize: Number(e.target.value) || 0 }))}
+              />
             </Field>
           </div>
+          <Field label="טלפון II">
+            <input className="input" value={value.phone2} onChange={set('phone2')} inputMode="tel" />
+          </Field>
           <Field label="מקור (מי הפנה)">
             <input className="input" value={value.source} onChange={set('source')} />
           </Field>
@@ -127,11 +137,19 @@ export function DriverForm({
         <input className="input" value={value.phone} inputMode="tel"
           onChange={(e) => setValue((v) => ({ ...v, phone: e.target.value }))} />
       </Field>
+      <Field label="אזור חלוקה">
+        <input className="input" value={value.area} placeholder="למשל: מרכז"
+          onChange={(e) => setValue((v) => ({ ...v, area: e.target.value }))} />
+      </Field>
       <Field label="כמה חבילות מחלק">
         <select className="input" value={value.capacity}
           onChange={(e) => setValue((v) => ({ ...v, capacity: Number(e.target.value) }))}>
           {[2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
+      </Field>
+      <Field label="הערות">
+        <textarea className="input" value={value.notes}
+          onChange={(e) => setValue((v) => ({ ...v, notes: e.target.value }))} />
       </Field>
       <label className="row" style={{ gap: 9 }}>
         <input type="checkbox" checked={value.active}
